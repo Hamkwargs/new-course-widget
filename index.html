@@ -1,39 +1,66 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Latest Courses</title>
-  <style>
-    * {
-      margin: 0; padding: 0; box-sizing: border-box;
-    }
+    <!DOCTYPE html>
+    <html lang="th">
+    <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Latest 3 Moodle Courses</title>
+    <style>
+        body {
+        font-family: 'Segoe UI', sans-serif;
+        background-color: #f5f5f5;
+        padding: 20px;
+        }
+        .course-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 20px;
+        max-width: 1200px;
+        margin: auto;
+        }
+        .card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        overflow: hidden;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.3s ease;
+        }
+        .card:hover {
+        transform: translateY(-5px);
+        }
+        .card img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        background: #ddd;
+        }
+        .card-content {
+        padding: 16px;
+        flex-grow: 1;
+        }
+        .card-title {
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #004e5a;
+        margin-bottom: 8px;
+        }
+        .card-summary {
+        font-size: 0.95rem;
+        color: #555;
+        max-height: 80px;
+        overflow: hidden;
+        }
+        .loading, .error {
+        text-align: center;
+        font-size: 1rem;
+        color: #666;
+        margin-top: 30px;
+        }
 
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #ffffff
-      padding: 20px;
-    }
-
-    .container {
-      max-width: 1200px;
-      margin: auto;
-    }
-
-    .header {
-      text-align: left;
-      margin-bottom: 30px;
-      color: rgb(0, 0, 0);
-    }
-
-    .header h1 {
-      font-size: 2rem;
-      margin-bottom: 8px;
-      margin-top: 30px;
-    }
-
-
-    .refresh-btn {
+        .refresh-btn {
       background: #004e5a;
       color: white;
       border: none;
@@ -45,138 +72,86 @@
       margin-bottom: 8px;
       margin-top: 30px;
     }
-
-    .course-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 20px;
-    }
-
-    .card-link {
-      text-decoration: none;
-      color: inherit;
-      height: 100%;
-      display: block;
-    }
-
-    .course-card {
-      background: #ffffffee;
-      border-radius: 15px;
-      padding: 15px;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      transition: transform 0.3s ease;
-    }
-
-    .course-card:hover {
-      transform: translateY(-5px);
-    }
-
-    .course-card img {
-      width: 100%;
-      height: 180px;
-      object-fit: cover;
-      border-radius: 10px;
-      margin-bottom: 12px;
-    }
-
-    .course-title {
-      font-size: 1.2rem;
-      font-weight: bold;
-      margin-bottom: 5px;
-      color: #2c3e50;
-    }
-
-    .course-id {
-      font-size: 0.85rem;
-      color: #555;
-      margin-bottom: 10px;
-    }
-
-    .course-summary {
-      font-size: 0.9rem;
-      color: #555;
-      margin-top: auto;
-      max-height: 70px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .loading, .error {
-      text-align: center;
-      color: white;
-      font-size: 1rem;
-      padding: 20px;
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <div class="header">
-      <h1>📚 Check our new course!!</h1>
+    
+    </style>
+    </head>
+    <body>
+    <div class="container">
+        <div class="header">
+        <h1>📚 Check our new course!!</h1>
+        </div>
+        <div id="output">
+        <div class="loading">⏳ กำลังโหลดข้อมูลคอร์ส...</div>
+        </div>
+        <button class="refresh-btn" onclick="loadCourses()">🔄 โหลดใหม่</button>
     </div>
-    <div id="courseContainer">
-      <div class="loading">⏳ กำลังโหลดข้อมูลคอร์ส...</div>
-    </div>
-    <button class="refresh-btn" onclick="loadCourses()">🔄 โหลดใหม่</button>
-  </div>
 
-  <script>
-    const API_URL = "https://gdacademy.goldenduckgroup.com/moodle/webservice/rest/server.php?wstoken=f4dcacd0522b9bb7c5d9aeebf35041e5&wsfunction=core_course_get_courses&moodlewsrestformat=json";
+    <script>
+        const token = 'f4dcacd0522b9bb7c5d9aeebf35041e5'; // ← เปลี่ยนเป็น token จริงของคุณ
+        const baseUrl = 'https://gdacademy.goldenduckgroup.com/moodle/webservice/rest/server.php';
+        const fallbackImage = 'https://via.placeholder.com/640x360?text=No+Image';
 
-    const images = [
-      "https://raw.githubusercontent.com/Hamkwargs/new-course-widget/main/image/cover-1.png",
-      "https://raw.githubusercontent.com/Hamkwargs/new-course-widget/main/image/cover-3.png"
-    ];
+        async function fetchCourseDetail(courseId) {
+        const res = await fetch(`${baseUrl}?wstoken=${token}&wsfunction=core_course_get_courses_by_field&moodlewsrestformat=json&field=id&value=${courseId}`);
+        const data = await res.json();
+        return data.courses[0];
+        }
 
-    async function loadCourses() {
-      const container = document.getElementById("courseContainer");
-      container.innerHTML = '<div class="loading">⏳ กำลังโหลดข้อมูลคอร์ส...</div>';
+        async function loadLatestCourses() {
+        const output = document.getElementById('output');
 
-      try {
-        const response = await fetch(API_URL);
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-        const data = await response.json();
+        try {
+            const res = await fetch(`${baseUrl}?wstoken=${token}&wsfunction=core_course_get_courses&moodlewsrestformat=json`);
+            const courses = await res.json();
 
-        const courses = data
-          .filter(c => c.id > 1)
-          .sort((a, b) => b.id - a.id)
-          .slice(0, 3);
+            const filtered = courses.filter(c => c.id > 1);
+            const top3 = filtered.sort((a, b) => b.id - a.id).slice(0, 3);
 
-        const grid = document.createElement("div");
-        grid.className = "course-grid";
+            const courseDetails = await Promise.all(top3.map(c => fetchCourseDetail(c.id)));
 
-        courses.forEach((course, index) => {
-          const img = images[index % images.length];
+            const grid = document.createElement('div');
+            grid.className = 'course-grid';
 
-          const card = document.createElement("a");
-          card.href = `https://gdacademy.goldenduckgroup.com/moodle/course/view.php?id=${course.id}`;
-          card.className = "card-link";
-          card.target = "_top";
+            courseDetails.forEach(course => {
+            let imageUrl = fallbackImage;
 
-          card.innerHTML = `
-            <div class="course-card">
-              <img src="${img}" alt="Course Image"
-                   onerror="this.onerror=null;this.src='https://via.placeholder.com/640x360?text=Image+Not+Found';">
-              <div class="course-title">${course.fullname || course.shortname}</div>
-              <div class="course-id">ID: ${course.id} | ${course.shortname}</div>
-              ${course.summary ? `<div class="course-summary">${course.summary}</div>` : ''}
-            </div>
-          `;
+            if (course.courseimage) {
+                imageUrl = course.courseimage;
+            } else if (course.overviewfiles && course.overviewfiles.length > 0) {
+                const imageFile = course.overviewfiles.find(f =>
+                f.mimetype && f.mimetype.startsWith('image/')
+                );
+                if (imageFile && imageFile.fileurl) {
+                imageUrl = imageFile.fileurl + `&token=${token}`;
+                }
+            }
 
-          grid.appendChild(card);
-        });
+            const card = document.createElement('a');
+            card.className = 'card';
+            card.href = `https://gdacademy.goldenduckgroup.com/moodle/course/view.php?id=${course.id}`;
+            card.target = '_top';
 
-        container.innerHTML = "";
-        container.appendChild(grid);
-      } catch (err) {
-        container.innerHTML = `<div class="error">❌ เกิดข้อผิดพลาด: ${err.message}</div>`;
-      }
-    }
+            card.innerHTML = `
+                <img src="${imageUrl}" alt="Course Image" onerror="this.src='${fallbackImage}'">
+                <div class="card-content">
+                <div class="card-title">${course.fullname || course.shortname}</div>
+                <div class="card-summary">${course.summary || 'ไม่มีคำอธิบาย'}</div>
+                </div>
+            `;
 
-    window.addEventListener("load", loadCourses);
-  </script>
-</body>
-</html>
+            grid.appendChild(card);
+            });
+
+            output.innerHTML = '';
+            output.appendChild(grid);
+
+        } catch (error) {
+            output.innerHTML = `<div class="error">❌ เกิดข้อผิดพลาด: ${error.message}</div>`;
+            console.error('❌ DEBUG:', error);
+        }
+        }
+
+        window.addEventListener('load', loadLatestCourses);
+    </script>
+    </body>
+    </html>
