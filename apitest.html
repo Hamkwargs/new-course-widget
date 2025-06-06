@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Course Display</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #004e5a 0%,     #004637 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .course-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+        }
+
+        .course-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .course-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+            background-size: 300% 300%;
+            animation: gradientMove 3s ease infinite;
+        }
+
+        @keyframes gradientMove {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .course-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.25);
+        }
+
+        .course-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .course-id {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-right: 15px;
+        }
+
+        .course-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2c3e50;
+            flex: 1;
+        }
+
+        .course-info {
+            margin-bottom: 15px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .info-label {
+            font-weight: 500;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+        .info-value {
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 0.9rem;
+        }
+
+        .course-summary {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .summary-title {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 1rem;
+        }
+
+        .summary-content {
+            color: #5a6c7d;
+            line-height: 1.5;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2rem;
+            margin-top: 50px;
+        }
+
+        .error {
+            background: #ff6b6b;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            margin: 20px auto;
+            display: block;
+            transition: all 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Course Management System</h1>
+            <p>แสดงรายการคอร์สเรียนทั้งหมด (เรียงจากใหม่ไปเก่า)</p>
+        </div>
+
+        <button class="refresh-btn" onclick="loadCourses()">🔄 รีเฟรชข้อมูล</button>
+
+        <div id="courseContainer">
+            <div class="loading">⏳ กำลังโหลดข้อมูลคอร์ส...</div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://gdacademy.goldenduckgroup.com/moodle/webservice/rest/server.php?wstoken=f4dcacd0522b9bb7c5d9aeebf35041e5&wsfunction=core_course_get_courses&moodlewsrestformat=json';
+
+        async function loadCourses() {
+            const container = document.getElementById('courseContainer');
+            container.innerHTML = '<div class="loading">⏳ กำลังโหลดข้อมูลคอร์ส...</div>';
+
+            try {
+                const response = await fetch(API_URL);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const courses = await response.json();
+                
+                if (courses.error) {
+                    throw new Error(courses.error);
+                }
+                
+                displayCourses(courses);
+                
+            } catch (error) {
+                console.error('Error loading courses:', error);
+                container.innerHTML = `
+                    <div class="error">
+                        <h3>❌ เกิดข้อผิดพลาดในการโหลดข้อมูล</h3>
+                        <p>${error.message}</p>
+                        <p>กรุณาตรวจสอบการเชื่อมต่อและลองใหม่อีกครั้ง</p>
+                    </div>
+                `;
+            }
+        }
+
+        function displayCourses(courses) {
+            const container = document.getElementById('courseContainer');
+            
+            if (!courses || courses.length === 0) {
+                container.innerHTML = '<div class="error"><h3>ไม่พบข้อมูลคอร์ส</h3></div>';
+                return;
+            }
+
+            // เรียงลำดับคอร์สจาก ID มากไปน้อย (ใหม่ไปเก่า)
+            const sortedCourses = courses.sort((a, b) => b.id - a.id);
+
+            const courseGrid = document.createElement('div');
+            courseGrid.className = 'course-grid';
+
+            sortedCourses.forEach(course => {
+                const courseCard = createCourseCard(course);
+                courseGrid.appendChild(courseCard);
+            });
+
+            container.innerHTML = '';
+            container.appendChild(courseGrid);
+        }
+
+        function createCourseCard(course) {
+            const card = document.createElement('div');
+            card.className = 'course-card';
+
+            const isActive = course.startdate === 0 || new Date(course.startdate * 1000) <= new Date();
+            const statusClass = isActive ? 'status-active' : 'status-inactive';
+            const statusText = isActive ? 'เปิดใช้งาน' : 'ยังไม่เปิด';
+
+            card.innerHTML = `
+                <div class="course-header">
+                    <div class="course-id">ID: ${course.id}</div>
+                    <div class="course-title">${course.fullname || course.shortname}</div>
+                </div>
+
+                <div class="course-info">
+                    <div class="info-row">
+                        <span class="info-label">ชื่อย่อ:</span>
+                        <span class="info-value">${course.shortname}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">หมวดหมู่:</span>
+                        <span class="info-value">Category ${course.categoryid}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">รูปแบบ:</span>
+                        <span class="info-value">${course.format}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">จำนวนหัวข้อ:</span>
+                        <span class="info-value">${course.numsections}</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">สถานะ:</span>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+                </div>
+
+                ${course.summary ? `
+                    <div class="course-summary">
+                        <div class="summary-title">📋 รายละเอียดคอร์ส</div>
+                        <div class="summary-content">${course.summary}</div>
+                    </div>
+                ` : ''}
+            `;
+
+            return card;
+        }
+
+        // Load courses when page loads
+        window.addEventListener('load', loadCourses);
+    </script>
+</body>
+</html>
